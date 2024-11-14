@@ -1,164 +1,110 @@
 import flet as ft
-#Precisa corrigir as cores
 
-class Message:
-    def __init__(self, user_name: str, text: str, message_type: str):
-        self.user_name = user_name
-        self.text = text
-        self.message_type = message_type
-
-
-class ChatMessage(ft.Row):
-    def __init__(self, message: Message):
-        super().__init__()
-        self.vertical_alignment = ft.CrossAxisAlignment.START
-        self.controls = [
-            ft.CircleAvatar(
-                content=ft.Text(self.get_initials(message.user_name)),
-                color=ft.colors.WHITE,
-                bgcolor=self.get_avatar_color(message.user_name),
-            ),
-            ft.Column(
-                [
-                    ft.Text(message.user_name, weight="bold", color=ft.colors.WHITE),
-                    ft.Text(message.text, selectable=True, color=ft.colors.WHITE),
-                ],
-                tight=True,
-                spacing=5,
-            ),
-        ]
-
-    def get_initials(self, user_name: str):
-        if user_name:
-            return user_name[:1].capitalize()
-        else:
-            return "U"  # Initial for unknown
-
-    def get_avatar_color(self, user_name: str):
-        colors_lookup = [
-            ft.colors.AMBER,
-            ft.colors.BLUE,
-            ft.colors.BROWN,
-            ft.colors.CYAN,
-            ft.colors.GREEN,
-            ft.colors.INDIGO,
-            ft.colors.LIME,
-            ft.colors.ORANGE,
-            ft.colors.PINK,
-            ft.colors.PURPLE,
-            ft.colors.RED,
-            ft.colors.TEAL,
-            ft.colors.YELLOW,
-        ]
-        return colors_lookup[hash(user_name) % len(colors_lookup)]
-
-
+# Função da página principal
 def main(page: ft.Page):
-    page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
-    page.title = "Flet Chat"
-    page.bgcolor = ft.colors.BLACK  # Definindo a cor de fundo da página
+    page.bgcolor = "#000000"
+    # Variável de estado para controlar a aba ativa
+    active_tab = "inicio"  # Iniciar com a aba "INÍCIO" ativa
 
-    def join_chat_click(e):
-        if not join_user_name.value:
-            join_user_name.error_text = "Name cannot be blank!"
-            join_user_name.update()
-        else:
-            page.session.set("user_name", join_user_name.value)
-            page.dialog.open = False
-            new_message.prefix = ft.Text(f"{join_user_name.value}: ", color=ft.colors.WHITE)
-            page.pubsub.send_all(
-                Message(
-                    user_name=join_user_name.value,
-                    text=f"{join_user_name.value} has joined the chat.",
-                    message_type="login_message",
-                )
-            )
-            page.update()
+    # Função para trocar a aba
+    def change_tab(tab_name: str):
+        nonlocal active_tab  # Modifica a variável active_tab
+        active_tab = tab_name  # Atualiza a aba ativa
+        update_tabs()  # Atualiza as abas
+        page.update()  # Atualiza a página para refletir a mudança
 
-    def send_message_click(e):
-        if new_message.value != "":
-            page.pubsub.send_all(
-                Message(
-                    page.session.get("user_name"),
-                    new_message.value,
-                    message_type="chat_message",
-                )
-            )
-            new_message.value = ""
-            new_message.focus()
-            page.update()
-
-    def on_message(message: Message):
-        if message.message_type == "chat_message":
-            m = ChatMessage(message)
-        elif message.message_type == "login_message":
-            m = ft.Text(message.text, italic=True, color=ft.colors.WHITE, size=12)
-        chat.controls.append(m)
-        page.update()
-
-    page.pubsub.subscribe(on_message)
-
-    # A dialog asking for a user display name
-    join_user_name = ft.TextField(
-        label="Enter your name to join the chat",
-        autofocus=True,
-        on_submit=join_chat_click,
-        bgcolor=ft.colors.GREY,
-        color=ft.colors.WHITE,
-    )
-    page.dialog = ft.AlertDialog(
-        open=True,
-        modal=True,
-        title=ft.Text("Welcome!", color=ft.colors.WHITE),
-        content=ft.Column([join_user_name], width=300, height=70, tight=True),
-        actions=[ft.ElevatedButton(text="Join chat", on_click=join_chat_click)],
-        actions_alignment=ft.MainAxisAlignment.END,
+    # Barra de navegação lateral
+    nav_bar = ft.Container(
+        content=ft.Column(
+            controls=[
+                # Botões da navbar que alteram a aba ativa
+                ft.TextButton("INÍCIO", style=ft.ButtonStyle(color="green"), on_click=lambda e: change_tab("inicio")),
+                ft.TextButton("MONITORAMENTO", style=ft.ButtonStyle(color="green"), on_click=lambda e: change_tab("monitoramento")),
+                ft.TextButton("ESPORTES", style=ft.ButtonStyle(color="green"), on_click=lambda e: change_tab("esportes")),
+                ft.TextButton("CONFIGURAÇÕES", style=ft.ButtonStyle(color="green"), on_click=lambda e: change_tab("configuracoes")),
+            ],
+            alignment="start",  # Alinha os itens ao topo da barra lateral
+            spacing=20,
+        ),
+        bgcolor="#4F4F4F",  # Cor de fundo da barra lateral
+        padding=ft.padding.all(20),
+        width=200,  # Largura da barra lateral
+        height=page.vertical_alignment,  # A altura da barra lateral será igual à altura da página, independente da orientação.
+        border_radius=ft.border_radius.all(10)  # Bordas arredondadas
     )
 
-    # Chat messages
-    chat = ft.ListView(
-        expand=True,
-        spacing=10,
-        auto_scroll=True,
-        bgcolor=ft.colors.BLACK,  # Cor de fundo do chat
-        padding=10,
+    # Conteúdo das diferentes abas
+    inicio_content = ft.Column(
+        controls=[
+            ft.Text("Bem-vindo à aba INÍCIO!", size=24, weight="bold", color="lightblue"),
+            ft.Text("Aqui você verá informações iniciais.", size=18, color="lightblue"),
+        ],
+        visible=True  # Inicialmente exibido
     )
 
-    # A new message entry form
-    new_message = ft.TextField(
-        hint_text="Write a message...",
-        autofocus=True,
-        shift_enter=True,
-        min_lines=1,
-        max_lines=5,
-        filled=True,
-        expand=True,
-        on_submit=send_message_click,
-        bgcolor=ft.colors.GRAY,
-        color=ft.colors.WHITE,
+    acompanhamento_content = ft.Column(
+        controls=[
+            ft.Text("Bem-vindo à aba MONITORAMENTO!", size=24, weight="bold", color="lightblue"),
+            ft.Text("Aqui você pode acompanhar dados e métricas.", size=18, color="lightblue"),
+        ],
+        visible=False  # Inicialmente oculto
     )
 
-    # Add everything to the page
+    esportes_content = ft.Column(
+        controls=[
+            ft.Text("Bem-vindo à aba ESPORTES!", size=24, weight="bold", color="lightblue"),
+            ft.Text("Aqui você encontra notícias e atualizações sobre esportes.", size=18, color="lightblue"),
+        ],
+        visible=False  # Inicialmente oculto
+    )
+
+    configuracoes_content = ft.Column(
+        controls=[
+            ft.Text("Bem-vindo à aba CONFIGURAÇÕES!", size=24, weight="bold", color="lightblue"),
+            ft.Text("Aqui você pode ajustar suas preferências.", size=18, color="lightblue"),
+        ],
+        visible=False  # Inicialmente oculto
+    )
+
+    # Adiciona todos os componentes à página
     page.add(
-        ft.Container(
-            content=chat,
-            border=ft.border.all(1, ft.colors.WHITE),
-            border_radius=5,
-            padding=10,
-            expand=True,
-        ),
         ft.Row(
-            [
-                new_message,
-                ft.IconButton(
-                    icon=ft.icons.SEND_ROUNDED,
-                    tooltip="Send message",
-                    on_click=send_message_click,
-                    icon_color=ft.colors.WHITE,
+            controls=[
+                nav_bar,  # Barra lateral
+                ft.Column(
+                    controls=[
+                        inicio_content,
+                        acompanhamento_content,
+                        esportes_content,
+                        configuracoes_content,
+                    ],
+                    expand=True  # Preenche o restante da tela
                 ),
-            ]
-        ),
+            ],
+            expand=True  # Expande a linha para preencher a página
+        )
     )
 
+    # Função para atualizar a visibilidade com base na aba ativa
+    def update_tabs():
+        # Oculta todos os conteúdos
+        inicio_content.visible = False
+        acompanhamento_content.visible = False
+        esportes_content.visible = False
+        configuracoes_content.visible = False
+        
+        # Exibe o conteúdo da aba ativa
+        if active_tab == "inicio":
+            inicio_content.visible = True
+        elif active_tab == "monitoramento":
+            acompanhamento_content.visible = True
+        elif active_tab == "esportes":
+            esportes_content.visible = True
+        elif active_tab == "configuracoes":
+            configuracoes_content.visible = True
 
+    # Chama a função de atualização de abas
+    update_tabs()
+
+# Executa a aplicação
 ft.app(target=main)
